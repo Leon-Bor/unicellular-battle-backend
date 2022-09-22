@@ -7,7 +7,9 @@ import {
 
 import { Socket as SocketIoClient } from 'socket.io';
 
-export class Socket extends SocketIoClient {}
+export class Socket extends SocketIoClient {
+  gameId: string;
+}
 
 export enum SocketRoutes {
   CS_QUEUE_JOIN = 'CS_QUEUE_JOIN',
@@ -29,8 +31,7 @@ export enum ClientRoutes {
   SC_QUEUE_LEAVE = 'SC_QUEUE_LEAVE',
   SC_QUEUE_FOUND_ENEMY = 'SC_QUEUE_FOUND_ENEMY',
 
-  SC_GAME_CONNECT = 'SC_GAME_CONNECT',
-  SR_GAME_START = 'SR_GAME_START',
+  SR_GAME_CONNECT = 'SR_GAME_CONNECT',
   SR_GAME_SNAPSHOT_UPDATE = 'SR_GAME_SNAPSHOT_UPDATE',
 
   SC_SETTINGS_UPDATE = 'SC_SETTINGS_UPDATE',

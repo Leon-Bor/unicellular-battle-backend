@@ -1,15 +1,20 @@
-import { SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
+import { Inject } from '@nestjs/common';
+import {
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
+} from '@nestjs/websockets';
+import { Server } from 'socket.io';
+import { GameConfig } from '../../config';
 import {
   SocketError,
   SocketErrorCode,
   SocketMessage,
-  SocketStatus,
   SocketSuccsess,
 } from '../../models/socketMessage';
-import { SocketRoutes } from '../connect/connect.gateway';
-import { Math } from 'phaser';
-
-export const QUEUE_TICK_RATE = 2000;
+import { GameService } from '../../services/game/game.service';
+import { MathUtils } from '../../utils/mathUtils';
+import { ClientRoutes, SocketRoutes } from '../connect/connect.gateway';
 
 export type QueueingPlayer = {
   clientId: string;
@@ -26,13 +31,16 @@ export type QueueingPlayer = {
 
 @WebSocketGateway()
 export class QueueGateway {
-  private queue: QueueingPlayer[];
+  private queue: QueueingPlayer[] = [];
+
+  @WebSocketServer() private socket: Server;
+  @Inject() private gameService: GameService;
 
   constructor() {
     setInterval(() => {
       this.updateQueueingPlayers();
       this.matchPlayers();
-    }, QUEUE_TICK_RATE);
+    }, GameConfig.QUEUE_TICK_RATE);
   }
 
   @SubscribeMessage(SocketRoutes.CS_QUEUE_JOIN)
@@ -76,7 +84,7 @@ export class QueueGateway {
     this.queue
       .map((p) => {
         // Increase waiting time.
-        p.watingTime = p.watingTime + QUEUE_TICK_RATE;
+        p.watingTime = p.watingTime + GameConfig.QUEUE_TICK_RATE;
 
         // Increase level varianz if players are in queue.
         if (this.queue.length > 1) {
@@ -97,6 +105,16 @@ export class QueueGateway {
       const searchingPlayer = this.queue[i];
       enemy = this.findEnemy(searchingPlayer);
       if (enemy) {
+        const game = this.gameService.createNewGame(searchingPlayer, enemy);
+
+        this.socket
+          .to(searchingPlayer.clientId)
+          .emit(ClientRoutes.SC_QUEUE_FOUND_ENEMY, game);
+
+        this.socket
+          .to(enemy.clientId)
+          .emit(ClientRoutes.SC_QUEUE_FOUND_ENEMY, game);
+
         this.removePlayerFromQueue(searchingPlayer.clientId);
         this.removePlayerFromQueue(enemy.clientId);
         break;
@@ -111,7 +129,7 @@ export class QueueGateway {
   }
 
   findEnemy(player: QueueingPlayer): QueueingPlayer | undefined {
-    const enemey = this.queue.find((enemy) => {
+    return this.queue.find((enemy) => {
       // Filter out him self.
       if (player.clientId === enemy.clientId) {
         return false;
@@ -123,15 +141,9 @@ export class QueueGateway {
       }
 
       // Consider enemy with level varianz.
-      if (Math.Within(player.level, enemy.level, player.levelVarianz)) {
+      if (MathUtils.within(player.level, enemy.level, player.levelVarianz)) {
         return true;
       }
     });
-
-    if (enemey) {
-      return enemey;
-    } else {
-      return undefined;
-    }
   }
 }
