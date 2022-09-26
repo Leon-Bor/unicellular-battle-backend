@@ -1,5 +1,7 @@
 import uuid from 'uuid';
+import { Bullet } from './bullet';
 import { Player } from './player';
+import { Position } from './position';
 
 export type IRunningGame = {
   playerIds: string[];
@@ -29,35 +31,36 @@ export type ActionStartGame = {
   type: ActionType.StartGame;
 };
 
-export type Position = {
-  x: number;
-  y: number;
-};
-
 export type GameAction = ActionMove | ActionFire | ActionStartGame;
+
+export interface IGameSnapshot {
+  players: Player[];
+  bullets: Bullet[];
+}
 
 export class RunningGame {
   id: string;
   isStarted: boolean;
   playerIds: string[];
-  playersConnected: boolean[];
 
   actions: GameAction[] = [];
   actionHistory: GameAction[] = [];
 
-  player1: Player = new Player();
-  player1PositionDestination: Position;
+  players: Player[] = [];
+  bullets: Bullet[] = [];
 
   constructor({ playerIds }: IRunningGame) {
     this.id = uuid.v4();
     this.playerIds = playerIds;
-    this.playersConnected = new Array(playerIds.length).fill(false);
   }
 
   update(deltaTime): void {
-    if (this.player1PositionDestination) {
-      this.player1.x = this.player1.x + this.player1.velocity * deltaTime;
-    }
+    this.bullets.map((bullet) => bullet.updatePosition(deltaTime));
+    this.bullets = this.bullets.filter((bullet) =>
+      bullet.isBulletOutOfScreen(),
+    );
+
+    this.players.map((player) => player.updatePosition(deltaTime));
   }
 
   startGame(): void {
@@ -68,13 +71,12 @@ export class RunningGame {
   }
 
   playerJoinedGame(clientId): boolean {
-    const index = this.playerIds.findIndex((p) => p === clientId);
-    this.playersConnected[index] = true;
+    this.players.push(new Player({ id: clientId }));
     return this.allPlayersConnected();
   }
 
   private allPlayersConnected(): boolean {
-    return this.playersConnected.some((p) => p === false);
+    return this.players.length === 2;
   }
 
   actionMove(clientId: string, position: Position): void {
@@ -83,6 +85,8 @@ export class RunningGame {
       playerId: clientId,
       moveTo: position,
     });
+
+    this.players.find(({ id }) => id === clientId).moveTo(position);
   }
 
   actionFire(clientId, from: Position, to: Position): void {
@@ -92,14 +96,20 @@ export class RunningGame {
       from,
       to,
     });
+
+    this.bullets.push(
+      new Bullet({
+        position: new Position(from.x, from.y),
+        destination: new Position(to.x, to.y),
+        velocity: 100,
+      }),
+    );
   }
 
-  getSnapshot(): GameAction[] {
-    const snapshot = [...this.actions];
-
-    this.actionHistory = [...this.actionHistory, ...snapshot];
-    this.actions = [];
-
-    return snapshot;
+  getSnapshot(): IGameSnapshot {
+    return {
+      bullets: this.bullets,
+      players: this.players,
+    };
   }
 }

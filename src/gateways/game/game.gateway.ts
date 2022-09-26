@@ -8,7 +8,7 @@ import { GameService } from '../../services/game/game.service';
 import { ClientRoutes, Socket, SocketRoutes } from '../connect/connect.gateway';
 import { Server } from 'socket.io';
 import { GameConfig } from '../../config';
-import { Position } from '../../models/runningGame';
+import { Position } from '../../models/position';
 
 @WebSocketGateway()
 export class GameGateway {
