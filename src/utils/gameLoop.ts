@@ -1,5 +1,4 @@
-import { start } from 'repl';
-
+ 
 export class GameLoop {
   private isRunning = false;
   private waitTime: number;

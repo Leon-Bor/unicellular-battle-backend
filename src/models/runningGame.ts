@@ -1,4 +1,4 @@
-import uuid from 'uuid';
+import { v4 } from 'uuid';
 import { Bullet } from './bullet';
 import { Player } from './player';
 import { Position } from './position';
@@ -50,7 +50,7 @@ export class RunningGame {
   bullets: Bullet[] = [];
 
   constructor({ playerIds }: IRunningGame) {
-    this.id = uuid.v4();
+    this.id = v4();
     this.playerIds = playerIds;
   }
 

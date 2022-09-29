@@ -5,10 +5,10 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { GameService } from '../../services/game/game.service';
-import { ClientRoutes, Socket, SocketRoutes } from '../connect/connect.gateway';
 import { Server } from 'socket.io';
 import { GameConfig } from '../../config';
 import { Position } from '../../models/position';
+import { ClientRoutes, Socket, SocketRoutes } from '../../models/socket';
 
 @WebSocketGateway()
 export class GameGateway {

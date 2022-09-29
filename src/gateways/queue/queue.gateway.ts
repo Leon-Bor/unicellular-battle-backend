@@ -7,14 +7,16 @@ import {
 import { Server } from 'socket.io';
 import { GameConfig } from '../../config';
 import {
+  ClientRoutes,
+  Socket,
   SocketError,
   SocketErrorCode,
   SocketMessage,
+  SocketRoutes,
   SocketSuccsess,
-} from '../../models/socketMessage';
+} from '../../models/socket';
 import { GameService } from '../../services/game/game.service';
 import { MathUtils } from '../../utils/mathUtils';
-import { ClientRoutes, SocketRoutes } from '../connect/connect.gateway';
 
 export type QueueingPlayer = {
   clientId: string;
@@ -40,20 +42,31 @@ export class QueueGateway {
     setInterval(() => {
       this.updateQueueingPlayers();
       this.matchPlayers();
+      console.log(this.queue);
     }, GameConfig.QUEUE_TICK_RATE);
   }
 
   @SubscribeMessage(SocketRoutes.CS_QUEUE_JOIN)
-  handleJoin(client: any, payload: any): SocketMessage<boolean> {
-    this.queue.push({
-      clientId: client.id,
-      playerId: 'todo',
-      level: 0,
-      levelVarianz: 0,
-      watingTime: 0,
-    });
+  handleJoin(client: Socket, payload: any): SocketMessage<boolean> {
+    const playerInQueue = this.queue.find((p) => p.clientId === client.id);
+    if (!playerInQueue) {
+      console.log(`Player ${client.playerId} joined queue.`);
 
-    return new SocketSuccsess({ payload: true });
+      this.queue.push({
+        clientId: client.id,
+        playerId: client.playerId,
+        level: 0,
+        levelVarianz: 0,
+        watingTime: 0,
+      });
+      return new SocketSuccsess({ payload: true });
+    } else {
+      console.log(`Player ${client.playerId} already in queue.`);
+      return new SocketError({
+        errorCode: SocketErrorCode.PLAYER_ALREADY_IN_QUEUE,
+        errorMessage: 'Player is already in queue.',
+      });
+    }
   }
 
   @SubscribeMessage(SocketRoutes.CS_QUEUE_LEAVE)

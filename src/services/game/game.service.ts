@@ -3,8 +3,8 @@ import { WebSocketServer } from '@nestjs/websockets';
 import { QueueingPlayer } from '../../gateways/queue/queue.gateway';
 import { RunningGame } from '../../models/runningGame';
 import { Server } from 'socket.io';
-import { ClientRoutes } from '../../gateways/connect/connect.gateway';
 import { GameLoop } from '../../utils/gameLoop';
+import { ClientRoutes } from '../../models/socket';
 
 @Injectable()
 export class GameService {
@@ -14,15 +14,6 @@ export class GameService {
   private gameLoop: GameLoop;
 
   constructor() {
-    // setInterval(() => {
-    //   this.runningGames.forEach((game, gameId) => {
-    //     const snapshot = game.getSnapshot();
-    //     this.socket
-    //       .to(gameId)
-    //       .emit(ClientRoutes.SR_GAME_SNAPSHOT_UPDATE, snapshot);
-    //   });
-    // }, 100);
-
     this.gameLoop = new GameLoop((deltaTime) => {
       this.runningGames.forEach((game, gameId) => {
         game.update(deltaTime);
